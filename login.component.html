@@ -1,0 +1,134 @@
+<div class="m-grid__item m-grid__item--fluid m-grid m-grid--hor m-login m-login--signin m-login--2 m-login-2--skin-1"
+	id="m_login" style="background-image: url(./assets/app/media/img//bg/blackwal3.jfif);" appunwraptag="">
+	<div class="m-grid__item m-grid__item--fluid m-login__wrapper">
+
+		<div class="m-login__container "
+			style="padding: 20px;border-radius: 20px;background: rgb(0,0,0,0.1); box-shadow: rgb(0, 0, 0,0.9) 0px 4px 5px, rgba(0, 0, 0,0.9) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;">
+			<div class="m-login__logo" style="margin: 0 auto 6rem auto;">
+				<a href="#">
+					<img src="./assets/app/media/img//logos/logo-big.png">
+				</a>
+			</div>
+			<div class="m-login__signin">
+				<div class="m-login__head">
+					<h3 class="m-login__title" style="    text-align: left;margin-left: 8px;">
+						Log In
+					</h3>
+				</div>
+				<form class="m-login__form m-form" action="" id="login_form" style="margin: 1rem auto 4rem auto;">
+					<div class="form-group m-form__group row">
+						<input class="form-control m-input colorchange" autocomplete="off" [(ngModel)]="users.username"
+							type="text" placeholder="Username" name="username" autocomplete="off">
+					</div>
+					<div class="form-group m-form__group row">
+						<input class="form-control m-input m-login__form-input--last colorchange"
+							[(ngModel)]="users.password" (keyup)="clear(password.value)"
+							(keypress)="checkCapsLock($event)" #password="ngModel" autocomplete="off" type="password"
+							placeholder="Password" name="password">
+						<div class="form-group" *ngIf="show" style="color:red;">Caps Lock is ON.
+						</div>
+					</div>
+					<div class="row m-login__form-sub">
+						<div class="col m--align-left m-login__form-left">
+							<label class="m-checkbox m-checkbox-1  m-checkbox--light">
+								<input type="checkbox" name="remember"> Remember me
+								<span></span>
+							</label>
+						</div>
+						<div class="col m--align-right m-login__form-right">
+							<a href="javascript:;" id="m_login_forget_password" role="button" class="m-link-1"
+								data-toggle="modal" data-target="#resetPassword">
+								Get Password
+							</a>
+						</div>
+
+
+					</div>
+					<div *ngIf="validUSER"
+						style="font-size: 14px;font-weight: 400;padding: 10px; color: #f4516c;border: 1px solid #f4516c;border-radius: 10px;">
+						Enter Valid username and password
+					</div>
+					<div class="m-login__form-action">
+						<button (click)="login()"
+							class="btn btn-focus m-btn m-btn--pill m-btn--custom m-btn--air-1  m-login__btn m-login__btn--primary-1">
+							Sign In
+						</button>
+					</div>
+				</form>
+			</div>
+
+
+			<div class="m-login__account">
+				<span class="m-login__account-msg">
+					Don't have an account yet ?
+				</span>
+				&nbsp;&nbsp;
+				<a href="/MIPLPortal/interviewform" id="m_login_signup"
+					class="m-link m-link--light m-login__account-link">
+					Sign Up
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<div class="modal fade" id="resetPassword" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+	aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document" style="height: 91%;
+    -webkit-box-align: center;
+    -webkit-box-pack: center;
+    display: -webkit-box;">
+
+		<div class="modal-content" style="padding: 0 20px;">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel" style="text-align: center;">
+					Forgot Password
+				</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">
+						&times;
+					</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<form id="newPunchForm" #form>
+
+
+					<div class="form-group">
+						<div class="form-group m-form__group row">
+							<div class="col-lg-12">
+
+								<label class="form-control-label">Enter your email-address and we'll send you a link to
+									reset your password</label>
+							</div>
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="form-group m-form__group row">
+							<div class="col-lg-12">
+
+								<input type="email" class="form-control" placeholder="E-mail address"
+									[(ngModel)]="email" name="comments" style="border: 1px solid #babbbf;">
+							</div>
+						</div>
+					</div>
+
+				</form>
+			</div>
+			<div class="modal-footer">
+
+				<button type="button" class="btn btn-brand" (click)="forgotPassword()">
+					Submit
+				</button>
+
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">
+					Close
+				</button>
+
+			</div>
+		</div>
+
+	</div>
+</div>

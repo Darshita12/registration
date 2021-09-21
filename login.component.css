@@ -1,0 +1,39 @@
+.resizeinput{
+   height: 50px;
+}
+
+  /* div.transbox {
+    margin: 30px;
+    background-color: #ffffff;
+    border: 1px solid black;
+    opacity: 0.3;
+    filter: alpha(opacity=30);} /* For IE8 and earlier */
+  
+  
+  div.transbox {
+    margin: 30px;
+    background-color: #ffffff;
+    border: 1px solid black;
+    opacity: 0.6;
+    filter: alpha(opacity=60); /* For IE8 and earlier */
+}
+
+div.transbox p {
+    margin: 5%;
+    font-weight: bold;
+    color: #000000;
+}
+
+.colorchange{
+  background-color:rgba(100,0,222,0.5);
+ color: white !important;
+ border-radius: 10px !important;
+}
+
+
+
+.modal-open .modal
+{
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
