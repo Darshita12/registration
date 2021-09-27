@@ -2,23 +2,27 @@ import { faBookmark, faSave, faTimes, faWindowClose } from '@fortawesome/pro-sol
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Group } from '@material-ui/icons';
 import * as React from 'react';
+import { connect } from 'react-redux';
+import { projectActions } from '../../../../_actions';
 import '../../../../_assets/ForgeViewer.scss'
 import { timeHelper } from '../../../../_helpers';
-// import {} from '../../../../.././public/'
-import { ForgeViewerComment, ForgeViewerProps, ForgeViewerState } from '../../../ProjectModels';
-// import {} from 'a'
-export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerState>{
+import { mapStateToForgeViewerProps } from '../../ProjectUtils';
+import { CreateProjectDrawingComments, ForgeViewerComment, ForgeViewerProps, ForgeViewerState } from '../../../ProjectModels';
+class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerState>{
 
-    Autodesk = window.Autodesk
+    Autodesk = window.Autodesk;
+    Three = window.THREE;
     viewer: any;
-    markup: any;
-    viewer1: any; markupsStringData: any; viewables: any; doc: any; subToolbar: any; viewerApp: any; url = "A3-2 - WAREHOUSE WALL SECTIONS.pdf"; comment = true; markupsData: any; onToolbarCreatedBinded: any;
+    markupType: any; cam: any;
+    viewer1: any; markupsStringData: any; viewables: any; doc: any;
     sheets = [];
-    options = {
-        env: 'Local',
-        api: 'derivativeV2', // TODO: for models uploaded to EMEA change this option to 'derivativeV2_EU'
-        // getAccessToken: getForgeToken
-    };
+    modeArrow: any; modeRectangle: any; modePencil: any; modeCloud: any; modeText: any; setColor: any; setStroke: any;
+    options: any;
+    //  = {
+    //     env: 'Local',
+    //     api: 'derivativeV2', // TODO: for models uploaded to EMEA change this option to 'derivativeV2_EU'
+    //     getAccessToken: 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IlU3c0dGRldUTzlBekNhSzBqZURRM2dQZXBURVdWN2VhIn0.eyJzY29wZSI6WyJkYXRhOndyaXRlIiwiZGF0YTpyZWFkIiwiYnVja2V0OmNyZWF0ZSIsImJ1Y2tldDpkZWxldGUiXSwiY2xpZW50X2lkIjoiSHcyV3k0NGR5T1hMaEFHZDVnZUJuMTM2VnlPR3AzTjkiLCJhdWQiOiJodHRwczovL2F1dG9kZXNrLmNvbS9hdWQvYWp3dGV4cDYwIiwianRpIjoiSFJ5bXFSRkZQN21rdzRKb1c5OHUycVlPZEtWVWg4VUFIclBVb1FGcTVMVk5VcThlYmhHaE43cHp1ck54NHFpSiIsImV4cCI6MTYyNDM2MjczMX0.MANdjueuXKqkx022UqEj_-TQSHSZBWXlxNYGEY93G6eRdsF3PwNC76O53rwb1jyV3lpV2yCFZConZU282j2LGH8z1IdxaAIfWwVaq5Yx9wVhUnqy1BPK1yC8BYIQQ68j6PI4KyjKAAF0zGaRu2ea0t9eC-mmS6PEMZaruc48L7qoEVJ-FXKcgDdR__YqDsTOmXr2gL9CVbSU8BCneagJOxp4vBu5tnM2zS3zgde7okUk58XMs3ioCW-MI8CMsohUHhGSPf_BXwQPWnphTr4wnoWihilzAohAcB9go4NAsUKkRLry9W4wvRpw951gTYP0NjgEc7pM8BeX_Dve5tm1xw'
+    // };
     constructor(props: ForgeViewerProps) {
         super(props);
         this.state = {
@@ -26,8 +30,10 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
             isThumbnailView: false,
             isViewingComment: false,
             isAddingComment: false,
+            url: '',
+            markerData: '',
             sheetList: [],
-            commentList: []
+            camera: {}
         }
     }
     componentDidMount() {
@@ -35,10 +41,6 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
         var acc = document.getElementsByClassName("accordion");
         var viewables;
         var i;
-        var x1 = document.getElementById("button");
-        if (x1) {
-            x1.style.display = "none";
-        }
         for (i = 0; i < acc.length; i++) {
             acc[i].addEventListener("click", function (this: any) {
                 this.classList.toggle("active1");
@@ -50,17 +52,31 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
                 }
             });
         }
-        // const MODEL_URL = 'https://petrbroz.s3-us-west-1.amazonaws.com/svf-samples/sports-car/0.svf';
-        const MODEL_URL = 'svfoutput/output/result.svf'
-        // let documentId = "urn:dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6aHcyd3k0NGR5b3hsaGFnZDVnZWJuMTM2dnlvZ3AzbjlfdHV0b3JpYWxfYnVja2V0L3JzdF9iYXNpY19zYW1wbGVfcHJvamVjdC5ydnQ="
+        this.options = {
+            env: 'Local',
+            api: 'derivativeV2', // TODO: for models uploaded to EMEA change this option to 'derivativeV2_EU'
+            // accessToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IlU3c0dGRldUTzlBekNhSzBqZURRM2dQZXBURVdWN2VhIn0.eyJzY29wZSI6WyJkYXRhOndyaXRlIiwiZGF0YTpyZWFkIiwiYnVja2V0OmNyZWF0ZSIsImJ1Y2tldDpkZWxldGUiXSwiY2xpZW50X2lkIjoiSHcyV3k0NGR5T1hMaEFHZDVnZUJuMTM2VnlPR3AzTjkiLCJhdWQiOiJodHRwczovL2F1dG9kZXNrLmNvbS9hdWQvYWp3dGV4cDYwIiwianRpIjoiSzdOR0tPTFVxNnlBNHRjUGxhQWFaQ3V5bzQ1R1JUZnFxa2Z2S1NVWW5MNVVXOUJkNGRWYmtLSlhsR0RsZkw0ZSIsImV4cCI6MTYyNDM3MDIwNX0.DT0B8fmMsBJUfjNZCQK1o_6e_iMvfpnl9SmezSmJ9mWlTX3ovSX0kMWBmZ925hhCebzhXlaAanoKfYsmUR9PPvTEVisGoWbIHouokx87pIEPyvQ7eNC6_XXoz5u_U3bV3oc6ZVicdr3f19xVvzxvcZgw1vmIzA9XwGba2kFf6lTsModEWMsaIcezg5wOE_2KBTKuBV1hr9_s74jSVHYRi--qNKk2yXrv2YgukAqQuVOtMGkghyAdRPAG9P5a1pFYd39NhoqFpqFZXU8L8zic-_hn2Zthzfnji7nRA_RdNuWysw-ZCMl3lgif7FtpmNgxxWjmWVvuXggAAIDEAb5Q3A'
+        };
+        this.props.dispatch<any>(projectActions.getProjectDrawingCommentsByProjectDrawingId(this.props.projectDrawingId));
+
+
+        const MODEL_URL = 'https://petrbroz.s3-us-west-1.amazonaws.com/svf-samples/sports-car/0.svf';
+
+        // const MODEL_URL = 'urn:adsk.viewing:fs.file:dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6dGlwcG1hbm5fYnVja2V0L3JzdF9iYXNpY19zYW1wbGVfcHJvamVjdCUyMCgxKS5ydnQ/output/Resource/3D_View/_3D_ 1454508/_3D_.svf'
+        // let documentId = 'urn:dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6dGlwcG1hbm5fYnVja2V0L3JzdF9iYXNpY19zYW1wbGVfcHJvamVjdCUyMCgxKS5ydnQ'
+
+        let documentId = 'urn:' + 'dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6dGlwcG1hbm5fYnVja2V0L3JzdF9iYXNpY19zYW1wbGVfcHJvamVjdCUyMCgxKS5ydnQ';
+
         self.Autodesk.Viewing.Initializer(this.options, async function onInitialized() {
             // Find the element where the 3d viewer will live.    
-            var htmlElement = document.getElementById('viewerDiv');
+
+            let htmlElement = document.getElementById('viewerDiv');
+
             if (htmlElement) {
-                // Create and start the viewer in that element    
+                // Create and start the viewer in that element   
                 self.viewer = new self.Autodesk.Viewing.GuiViewer3D(htmlElement, {
                     extensions: [],
-                    disabledExtensions: { measure: true, explode: true, markupsCore: true }
+                    // disabledExtensions: { measure: true, explode: true, markupsCore: true }
 
                 })
                 self.viewer.start(MODEL_URL);
@@ -68,14 +84,21 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
                     self.onDocumentLoadSuccess
                     // () => {}
                 );
+                self.cam = JSON.stringify(self.viewer.getState({ viewport: true }));
+                // self.viewer.getReverseZoomDirection();
+                // self.viewer.start();
+                // self.Autodesk.Viewing.Document.load(documentId, self.onDocumentLoadSuccess, self.onDocumentLoadFailure);
 
-                self.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then(function () { })
-                self.viewer.loadExtension("Autodesk.Viewing.MarkupsGui")
+                // self.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then(function () { })
             }
         });
 
+
     }
 
+    onDocumentLoadFailure() {
+        console.error('Failed fetching Forge manifest');
+    }
     onClickClose = () => {
         var x1 = document.getElementById("button");
         if (x1) {
@@ -91,15 +114,10 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
         const { isThumbnailView, isListView } = this.state;
         this.setState({ isThumbnailView: true, isListView: false })
     }
-    onDocumentLoadFailure(viewerErrorCode: any) {
-        console.error('onDocumentLoadFailure() - errorCode: ' + viewerErrorCode);
-    }
     onDocumentLoadSuccess = (doc: any) => {
         // Load the default viewable geometry into the viewer.
         // Using the doc, we have access to the root BubbleNode,
         // which references the root node of a graph that wraps each object from the Manifest JSON.
-        console.log('hey!!!')
-        let self = this;
         this.doc = doc;
         const { sheetList } = this.state;
         // this.viewables = doc.getRoot().search(self.Autodesk.Viewing.BubbleNode.SHEET_NODE);//.getDefaultGeometry();
@@ -118,21 +136,16 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
     snapshot = () => {
         var screenshot = new Image();
         let self = this;
-        const { commentList } = self.state;
-        var x1 = document.getElementById("button");
-        if (x1) {
-            x1.style.display = "none";
-        }
         self.setState({ isAddingComment: false })
         screenshot.onload = function () {
             self.viewer.loadExtension('Autodesk.Viewing.MarkupsCore').then(function (markupCore: any) {
 
                 const markupExtension1 = self.viewer.getExtension("Autodesk.Viewing.MarkupsCore");
                 self.markupsStringData = markupExtension1.generateData();
+                self.setState({ markerData: self.markupsStringData })
                 markupCore.leaveEditMode();
                 markupCore.loadMarkups(self.markupsStringData, "Layer_1")
                 markupCore.showMarkups("Layer_1");
-
                 // ideally should also restore the state of Viewer for this markup
 
                 // prepare to render the markups
@@ -155,9 +168,10 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
                         document.body.appendChild(a);
                         // @ts-ignore
                         a.href = canvas.toDataURL();
-                        self.state.commentList.push({ date: new Date(), sheetname: 'S201 - Upper House Framing', url: a.href, userName: "Harsh Joshi" });
-                        self.setState({ commentList });
-                        self.markup = a.href;
+                        self.setState({ url: a.href, camera: self.viewer.getCamera() }, () => {
+                            self.getScreenAndSave();
+                        });
+                        // self.markup = a.href;
                         // a.download = 'markup.png';
                         a.click();
 
@@ -165,8 +179,8 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
                     }, true);
                 }
                 // hide the markups
-                markupCore.hide();
-
+                // markupCore.hideMarkups("Layer_1");
+                markupCore.hide()
             });
         };
 
@@ -174,51 +188,107 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
         self.viewer.getScreenShot(self.viewer.container.clientWidth, self.viewer.container.clientHeight, function (blobURL: any) {
             screenshot.src = blobURL;
         });
+
+
     }
 
-    getComment = () => {
-        this.setState({ isAddingComment: false, isViewingComment: true })
-        // self.viewer.loadExtension('Autodesk.Viewing.MarkupsCore').then(function (markupCore: any) {
+    getScreenAndSave() {
+        this.viewer.unloadExtension('Autodesk.Viewing.MarkupsCore');
+        let camView = { position: this.state.camera.position, target: this.state.camera.target }
+        const obj: CreateProjectDrawingComments = {
+            ProjectDrawingId: this.props.projectDrawingId,
+            Photourl: { FileData: this.state.url, FileName: "a4.png", FileType: "image/png" },
+            MarkerData: this.state.markerData,
+            sheettitle: 'S101 - Framin Plans',
+            CameraView: JSON.stringify(camView)
+        }
+        this.props.dispatch<any>(projectActions.createProjectDrawingComments(obj, () => {
+            this.props.dispatch<any>(projectActions.getProjectDrawingCommentsByProjectDrawingId(this.props.projectDrawingId))
+        }));
+    }
 
-        // this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
-        //     ext.enterEditMode();
-        //     var x = document.getElementById("button");
-        //     if (x) {
-        //         x.style.display = "none";
-        //         // } else if (x) {
-        //         //     x.style.display = "none";
-        //     }
-        //     ext.loadMarkups(this.markupsStringData, "Layer_1")
-        //     ext.showMarkups("Layer_1");
-        //     (new this.Autodesk.Viewing.Extensions.Markups.Core.CreateArrow(ext, 2333, { x: 20, y: 20 }, { x: 10, y: 20 }, 'sb233')).execute();
-        //     this.Autodesk.Viewing.Extensions.Markups.Core.Utils.showLmvToolsAndPanels(this.viewer)
-        //     // ext.leaveEditMode();
+    getComment = (markerData: string, cameraView: string) => {
+        this.setState({ isViewingComment: true })
+        let view = JSON.parse(cameraView)
+        this.viewer.restoreState(JSON.parse(this.cam), { viewport: true }, true);
+        this.viewer.autocam.setHomeViewFrom(this.viewer.navigation.getCamera());
+        // await this.viewer.autocam.resetHome();
+        this.viewer.navigation.setView(new this.Three.Vector3(view.position.x, view.position.y, view.position.z), new this.Three.Vector3(view.target.x, view.target.y, view.target.z))
+        this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
+            ext.enterEditMode();
+            ext.leaveEditMode();
+            ext.loadMarkups(markerData, "Layer_1")
+            ext.showMarkups("Layer_1");
 
-        // })
+        })
     }
     addComment = () => {
         this.setState({ isAddingComment: true })
+    }
+    closeComment = () => {
+        this.setState({ isViewingComment: false, isAddingComment: false });
+        this.viewer.unloadExtension('Autodesk.Viewing.MarkupsCore');
+    }
+    selectArrow = () => {
+        this.setState({ isAddingComment: true })
         this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
             ext.enterEditMode();
-            var x = document.getElementById("button");
-            if (x && x.style.display === "none") {
-                x.style.display = "block";
-            } else if (x) {
-                x.style.display = "none";
-            }
-
-            (new this.Autodesk.Viewing.Extensions.Markups.Core.CreateArrow(ext, 2333, { x: 20, y: 20 }, { x: 10, y: 20 }, 'sb233')).execute();
+            ext.hideMarkups("Layer_1");
+            this.markupType = "arrow";
+            this.modeArrow = new this.Autodesk.Viewing.Extensions.Markups.Core.EditModeArrow(ext);
+            ext.changeEditMode(this.modeArrow);
+        })
+    }
+    selectText = () => {
+        this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
+            ext.enterEditMode();
+            this.markupType = "text";
+            this.modeText = new this.Autodesk.Viewing.Extensions.Markups.Core.EditModeText(ext);
+            ext.changeEditMode(this.modeText);
             this.Autodesk.Viewing.Extensions.Markups.Core.Utils.showLmvToolsAndPanels(this.viewer)
         })
     }
-    closeComment = () => {
-        this.setState({ isViewingComment: false });
-        this.viewer.loadExtension('Autodesk.Viewing.MarkupsCore').then(function (markupCore: any) {
-            markupCore.leaveEditMode();
+    selectRectangle = () => {
+        this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
+            ext.enterEditMode();
+            this.markupType = "rectangle";
+            this.modeRectangle = new this.Autodesk.Viewing.Extensions.Markups.Core.EditModeRectangle(ext);
+            ext.changeEditMode(this.modeRectangle);
+            this.Autodesk.Viewing.Extensions.Markups.Core.Utils.showLmvToolsAndPanels(this.viewer)
+        })
+    }
+    selectPencil = () => {
+        this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
+            ext.enterEditMode();
+            this.markupType = "pencil";
+            this.modePencil = new this.Autodesk.Viewing.Extensions.Markups.Core.EditModeFreehand(ext);
+            ext.changeEditMode(this.modePencil);
+            this.Autodesk.Viewing.Extensions.Markups.Core.Utils.showLmvToolsAndPanels(this.viewer)
+        })
+    }
+    setStyle = () => {
+        this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
+            ext.enterEditMode();
+            let styleAttributes = ['stroke-width', 'stroke-color', 'stroke-opacity'];
+            let nsu = this.Autodesk.Viewing.Extensions.Markups.Core.Utils;
+            let styleObject = nsu.createStyle(styleAttributes, ext);
+            styleObject['stroke-color'] = 'yellow';
+            styleObject['stroke-width'] = 20;
+            // Set style up
+            ext.setStyle(styleObject);
+            // ext.defaultContext.layer.update()
+        })
+    }
+    selectCloud = () => {
+        this.viewer.loadExtension("Autodesk.Viewing.MarkupsCore").then((ext: any) => {
+            ext.enterEditMode();
+            this.markupType = "cloud";
+            this.modeCloud = new this.Autodesk.Viewing.Extensions.Markups.Core.EditModeCloud(ext);
+            ext.changeEditMode(this.modeCloud);
         })
     }
     render() {
-        const { isListView, isThumbnailView, commentList } = this.state;
+        const { isListView, isThumbnailView } = this.state;
         return (
 
             <div className="app">
@@ -344,36 +414,55 @@ export class ForgeViewer extends React.Component<ForgeViewerProps, ForgeViewerSt
                         {!this.state.isAddingComment && !this.state.isViewingComment && <button type="button" className="add-comment" onClick={this.addComment}>Add Comment</button>}
                         {this.state.isViewingComment && <button type="button" className="close-button" onClick={this.closeComment}>Close </button>}
 
-                        <button id="button"
-                            type="button" onClick={this.snapshot}>Save <FontAwesomeIcon icon={faBookmark} ></FontAwesomeIcon></button>
+                        {this.state.isAddingComment && <div className="add-comment-button"> <button id="button"
+                            type="button" className="save-button" onClick={this.snapshot}>Save</button>
+                            <button type="button" className="cancle-button" onClick={this.closeComment}>Cancle</button>
+                        </div>
+                        }
                         <div id="viewerDiv"></div>
+                        {this.state.isAddingComment &&
+                            <div className="markup-panel">
+                                {/* <div className="markup-button"> */}
+                                <button type="button" onClick={this.selectArrow}>Arrow</button>&nbsp;&nbsp;
+                                <button type="button" onClick={this.selectText}>Text</button>&nbsp;&nbsp;
+                                <button type="button" onClick={this.selectRectangle}>Rectangle</button>&nbsp;&nbsp;
+                                <button type="button" onClick={this.selectPencil}>Pencil</button>&nbsp;&nbsp;
+                                <button type="button" onClick={this.selectCloud}>Cloud</button>&nbsp;&nbsp;
+                                {/* <button type="button" onClick={this.setStyle}>Color</button>&nbsp;&nbsp; */}
+                                {/* </div> */}
+                            </div>
+                        }
                     </div>
                 </div>
                 <div className="viewer-comment-list">
                     <h3>Comments</h3>
-                    {commentList.map((comment: ForgeViewerComment) => (
+                    {this.props.commentList.map((comment: ForgeViewerComment) => (
                         <div className="viewer-comment">
-                            <span className="viewer-comment-user">{comment.userName}</span>
-                            <span className="viewer-comment-time">{timeHelper.formattedDate(comment.date)}</span>
-                            <span className="viewer-comment-thumbnail" onClick={this.getComment}>
-                                <div className="viewer-comment-thumbnail-wrap" style={{ backgroundImage: `url(${comment.url})` }}>
+                            <span className="viewer-comment-user">{comment.username}</span>
+                            <span className="viewer-comment-time">{timeHelper.formattedDate(new Date(comment.startDate))}</span>
+                            <span className="viewer-comment-thumbnail" onClick={() => this.getComment(comment.markerData, comment.cameraView)}>
+                                <div className="viewer-comment-thumbnail-wrap" style={{ backgroundImage: `url(${comment.photourl})` }}>
                                 </div>
-                                <div className="viewer-comment-thumbnail-txt">{comment.sheetname}</div>
+                                <div className="viewer-comment-thumbnail-txt">{comment.sheettitle}</div>
                             </span>
                         </div>
                     ))}
-                    <div className="viewer-comment" >
+                    {/* <div className="viewer-comment" >
                         <span className="viewer-comment-user">Harsh Joshi</span>
                         <span className="viewer-comment-time">June 05,2021</span>
                         <span className="viewer-comment-thumbnail">
-                            <div className="viewer-comment-thumbnail-wrap" style={{ backgroundImage: `url(https://helpx.adobe.com/content/dam/help/en/photoshop/using/convert-color-image-black-white/jcr_content/main-pars/before_and_after/image-before/Landscape-Color.jpg)` }}>
+                            <div className="viewer-comment-thumbnail-wrap" style={{ backgroundImage: `url(${this.state.url})` }}>
                             </div>
                             <div className="viewer-comment-thumbnail-txt">S201 - Upper House Framing</div>
                         </span>
-                    </div>
+                    </div> */}
 
                 </div>
             </div >
         )
     }
+}
+const connectedForgeViewer = connect(mapStateToForgeViewerProps)(ForgeViewer);
+export {
+    connectedForgeViewer as ForgeViewer
 }
